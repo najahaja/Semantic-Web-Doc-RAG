@@ -35,15 +35,33 @@ During development, several key challenges were addressed:
 
 ---
 
-## 💻 Tech Stack
+## 📦 Dependencies & Packages Explained (requirements.txt)
 
-- **Python** `3.11+`
-- **Django** & **Django REST Framework**
-- **Streamlit** (Frontend Dashboard)
-- **LangChain** & **LangGraph** (AI Logic & Routing)
-- **Groq API** (`llama-3.1-8b-instant`)
-- **Trafilatura** & **BeautifulSoup** (Web Extraction)
-- **FAISS** & **HuggingFace** (Vector Embeddings)
+This project has been highly optimized to only include strict necessities, removing all bloatware.
+
+### Web & API Framework
+- **`Django` (5.0.3)**: Provides the robust backend foundation for database and model management.
+- **`djangorestframework` & `django-cors-headers`**: Handles creating secure, cross-origin APIs that the frontend can safely query.
+- **`python-dotenv`**: Securely loads API keys from hidden `.env` files into OS variables.
+
+### Data Extraction & Processing
+- **`pdfplumber`**: Much more advanced than standard pdf-readers. Specifically chosen because it correctly preserves visual document structures and perfectly extracts data grids and tables without corrupting the text.
+- **`requests`, `beautifulsoup4`, `lxml`**: Fundamental tools for making HTTP API calls and safely navigating raw HTML DOM trees in case of scraper fallback.
+- **`trafilatura`**: A highly advanced Web Scraper used during "Web Ingestion" that bypasses ads, navigation bars, and gracefully detects tricky paywalls (402/403).
+
+### AI & Pipeline Ecosystem
+- **`langchain` / `langchain-core` / `langchain-community` (<0.3.0)**: The foundational logic library used to create LLM prompt templates and pipeline chains. Locked below v0.3 to prevent known runtime bugs with Python's deepcopy mechanism.
+- **`langgraph` (0.1.X)**: Used specifically to build the `START -> Retrieve -> Rerank -> Generate -> Evaluate` stateful directed graph.
+- **`langchain-groq`**: The dedicated driver used to directly communicate with Groq's impossibly fast `llama-3.1-8b-instant` model.
+- **`langchain-huggingface`**: Used to generate our document embeddings locally without paying OpenAI fees.
+
+### Mathematics & Storage
+- **`faiss-cpu`**: Meta's high-speed, local C++ Vector Database. Chosen over ChromaDB because FAISS uses zero background server logic, operating entirely in local physical memory for instant query responses.
+- **`sentence-transformers` & `numpy`**: Generates and handles the `all-MiniLM-L6-v2` dense vectors. `numpy` is natively leveraged in `evaluation.py` to calculate exact Cosine Similarity logic (Faithfulness and Relevance scores) via dot-products.
+
+### User Interface
+- **`streamlit`**: Empowers the entire interactive GUI frontend.
+- **`pandas`**: Used strictly by Streamlit to neatly format and render the complex AI evaluation mathematical metrics into beautiful dynamic HTML tables.
 
 ---
 
@@ -75,7 +93,6 @@ Inside the `back_end` folder, create a `.env` file based on your credentials:
 SECRET_KEY="your-django-secret-key"
 DEBUG=True
 
-LLM_PROVIDER=groq
 GROQ_API_KEY="your-groq-api-key-here"
 LLM_MODEL=llama-3.1-8b-instant
 
