@@ -76,12 +76,13 @@ if st.button("Run Pipeline"):
                     st.write(data["answer"])
                     
                     # 2. Sources display
-                    st.subheader("📚 Sources")
-                    for src in data["sources"]:
-                        if src["type"] == "web":
-                            st.markdown(f"- 🌐 [{src['id']}]({src['id']})")
-                        else:
-                            st.markdown(f"- 📄 {src['id']} (PDF)")
+                    if data.get("sources"):
+                        st.subheader("📚 Sources")
+                        for src in data["sources"]:
+                            if src["type"] == "web":
+                                st.markdown(f"- 🌐 [{src['id']}]({src['id']})")
+                            else:
+                                st.markdown(f"- 📄 {src['id']} (PDF)")
                     
                     # 3. Metrics display
                     st.subheader("📊 Evaluation Metrics")
