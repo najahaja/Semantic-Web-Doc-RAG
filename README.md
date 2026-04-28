@@ -10,17 +10,19 @@ The system is separated into a modern backend/frontend architecture to ensure sc
 
 ### Backend (Django Framework)
 - **Django REST Framework**: Powers the robust API endpoints for ingestion and querying.
-- **Data Ingestion**: 
-  - *PDF Uploads*: Processes documents locally using `pypdf`.
+- **Data Ingestion**:
+  - *PDF Uploads*: Processes documents locally using `pdfplumber` (table-aware extraction).
   - *Web Scraping*: Employs `trafilatura` for clean, ad-free text extraction from raw URLs, with built-in paywall detection.
+  - *Audio/Video*: Transcribes audio and video files using **OpenAI Whisper** with timestamp-aware chunking (3-second windows, 1-second overlap).
 - **Vector Database**: Implements **FAISS** index alongside **HuggingFace Embeddings** (`all-MiniLM-L6-v2`) via `langchain-community`.
-- **RAG Pipeline**: Built with **LangGraph**, designing a stateful flow from `Retrieve -> Rerank -> Generate -> Evaluate`.
+- **RAG Pipeline**: Built with **LangGraph**, designing a stateful flow from `Retrieve → Rerank → Generate → Evaluate`.
 - **LLM**: Integrated directly with **Groq's** high-speed `llama-3.1-8b-instant` model for near-instant inference generation.
-- **Evaluation Engine**: Ground-truth similarity checks to evaluate Relevance, Faithfulness, and Accuracy of generated text.
+- **Evaluation Engine**: Cosine similarity-based evaluation for Relevance, Faithfulness, and Answer Similarity. Metadata artifacts (timestamps, SourceIDs) are automatically stripped before embedding to prevent score pollution.
 
 ### Frontend (Streamlit)
-- **User Interface**: A clean UI offering a sidebar for easy data ingestion (both file upload and direct URLs).
+- **User Interface**: A clean UI offering a sidebar for easy data ingestion (PDF, Audio, Video, and URLs).
 - **Q&A Dashboard**: Interactive terminal allowing users to query ingested documents and display real-time evaluation metrics for the responses.
+- **Media Playback**: For audio/video sources, a **"▶ Play relevant segment"** button appears under the source, automatically seeking to the exact timestamp cited in the AI answer.
 
 ---
 
@@ -30,14 +32,16 @@ During development, several key challenges were addressed:
 
 1. **Hallucination Prevention**: Eager LLM models often hallucinate answers. The LangChain prompt template is strictly engineered to deny answering if context from the vector database is missing or irrelevant.
 2. **I/O & File Overwrite Errors (WinError 183)**: Handled complex OS-level file conflicts during PDF saving by upgrading from legacy `os.makedirs` to modern, conflict-resistant `pathlib.Path` structures.
-3. **Advanced Bot-Protection (403/402 Errors)**: Dealt with premium websites (like ESPN or Le Monde) denying web scrapers by implementing specific status code catches, gracefully alerting the user of paywalls or forbidden scraping rather than crashing the ingestion pipeline.
-4. **Git Push Protection Overrides**: Navigated GitHub's strict API Key protection measures by sanitizing the Git index, isolating `.env` from tracking via `.gitignore`, and force-rebuilding the root directory.
+3. **Advanced Bot-Protection (403/402 Errors)**: Dealt with premium websites denying web scrapers by implementing specific status code catches, gracefully alerting the user of paywalls or forbidden scraping rather than crashing the ingestion pipeline.
+4. **Git Push Protection Overrides**: Navigated GitHub's strict API Key protection measures by sanitizing the Git index and isolating `.env` from tracking via `.gitignore`.
+5. **Evaluation Score Pollution (Audio/Video)**: Discovered that timestamp citations (`[3.00s - 6.00s]`) and `SourceIDs` metadata appended to LLM answers were being fed directly into the embedding model, causing cosine similarity scores to collapse. Fixed by implementing a `_clean_answer()` pre-processing step in `evaluation.py` that strips all metadata before computing metrics.
+6. **Media Byte-Range Seeking**: Django's development server does not support HTTP Byte-Range requests, meaning the video player couldn't skip to a specific timestamp. Fixed by serving media files directly through Streamlit's own server using local file paths, bypassing Django for playback.
 
 ---
 
 ## 📦 Dependencies & Packages Explained (requirements.txt)
 
-This project has been highly optimized to only include strict necessities, removing all bloatware.
+This project has been highly optimized to only include strict necessities.
 
 ### Web & API Framework
 - **`Django` (5.0.3)**: Provides the robust backend foundation for database and model management.
@@ -45,23 +49,26 @@ This project has been highly optimized to only include strict necessities, remov
 - **`python-dotenv`**: Securely loads API keys from hidden `.env` files into OS variables.
 
 ### Data Extraction & Processing
-- **`pdfplumber`**: Much more advanced than standard pdf-readers. Specifically chosen because it correctly preserves visual document structures and perfectly extracts data grids and tables without corrupting the text.
+- **`pdfplumber`**: Table-aware PDF reader that correctly preserves visual document structures and data grids.
 - **`requests`, `beautifulsoup4`, `lxml`**: Fundamental tools for making HTTP API calls and safely navigating raw HTML DOM trees in case of scraper fallback.
-- **`trafilatura`**: A highly advanced Web Scraper used during "Web Ingestion" that bypasses ads, navigation bars, and gracefully detects tricky paywalls (402/403).
+- **`trafilatura`**: A highly advanced Web Scraper that bypasses ads, navigation bars, and gracefully detects tricky paywalls (402/403).
+- **`openai-whisper`**: Transcribes audio/video files locally with word-level timestamps using the `base` model.
+- **`moviepy`**: Extracts the audio track from video files (`.mp4`, etc.) before passing it to Whisper.
+- **`imageio-ffmpeg`**: Provides a bundled FFmpeg binary for audio/video processing without requiring a separate system installation.
 
 ### AI & Pipeline Ecosystem
-- **`langchain` / `langchain-core` / `langchain-community` (<0.3.0)**: The foundational logic library used to create LLM prompt templates and pipeline chains. Locked below v0.3 to prevent known runtime bugs with Python's deepcopy mechanism.
-- **`langgraph` (0.1.X)**: Used specifically to build the `START -> Retrieve -> Rerank -> Generate -> Evaluate` stateful directed graph.
-- **`langchain-groq`**: The dedicated driver used to directly communicate with Groq's impossibly fast `llama-3.1-8b-instant` model.
-- **`langchain-huggingface`**: Used to generate our document embeddings locally without paying OpenAI fees.
+- **`langchain` / `langchain-core` / `langchain-community` (<0.3.0)**: The foundational logic library used to create LLM prompt templates and pipeline chains.
+- **`langgraph`**: Used specifically to build the `START → Retrieve → Rerank → Generate → Evaluate` stateful directed graph.
+- **`langchain-groq`**: The dedicated driver used to communicate with Groq's `llama-3.1-8b-instant` model.
+- **`langchain-huggingface`**: Used to generate document embeddings locally.
 
 ### Mathematics & Storage
-- **`faiss-cpu`**: Meta's high-speed, local C++ Vector Database. Chosen over ChromaDB because FAISS uses zero background server logic, operating entirely in local physical memory for instant query responses.
-- **`sentence-transformers` & `numpy`**: Generates and handles the `all-MiniLM-L6-v2` dense vectors. `numpy` is natively leveraged in `evaluation.py` to calculate exact Cosine Similarity logic (Faithfulness and Relevance scores) via dot-products.
+- **`faiss-cpu`**: Meta's high-speed, local C++ Vector Database. Operates entirely in local physical memory for instant query responses.
+- **`sentence-transformers` & `numpy`**: Generates and handles `all-MiniLM-L6-v2` dense vectors. `numpy` handles Cosine Similarity calculations in `evaluation.py`.
 
 ### User Interface
-- **`streamlit`**: Empowers the entire interactive GUI frontend.
-- **`pandas`**: Used strictly by Streamlit to neatly format and render the complex AI evaluation mathematical metrics into beautiful dynamic HTML tables.
+- **`streamlit`**: Powers the entire interactive GUI frontend.
+- **`pandas`**: Neatly formats evaluation metrics into dynamic HTML tables.
 
 ---
 
@@ -77,7 +84,7 @@ cd Semantic-Web-Doc-RAG
 ```bash
 python -m venv venv
 venv\Scripts\activate   # Windows
-# or 
+# or
 source venv/bin/activate  # Mac/Linux
 ```
 
@@ -87,7 +94,7 @@ pip install -r requirements.txt
 ```
 
 ### 4. Configure Environment Variables
-Inside the `back_end` folder, create a `.env` file based on your credentials:
+Inside the `back_end` folder, create a `.env` file:
 ```env
 # back_end/.env
 SECRET_KEY="your-django-secret-key"
@@ -95,9 +102,6 @@ DEBUG=True
 
 GROQ_API_KEY="your-groq-api-key-here"
 LLM_MODEL=llama-3.1-8b-instant
-
-VECTOR_DB_PATH=../storage/vector_db
-MEDIA_ROOT=../storage/uploads
 ```
 
 ### 5. Start the Services
@@ -119,5 +123,6 @@ streamlit run streamlit_app.py
 
 ### 6. Usage
 - Navigate to `http://localhost:8501`.
-- Use the sidebar to ingest a PDF or enter a URL.
-- Enter your question in the main chat field and view the results alongside their relevance metrics!
+- Use the sidebar to ingest a PDF, scrape a URL, or upload an audio/video file.
+- Enter your question in the main field and view the AI answer alongside its relevance metrics.
+- For audio/video sources, click **"▶ Play relevant segment"** to jump directly to the cited timestamp in the media player.

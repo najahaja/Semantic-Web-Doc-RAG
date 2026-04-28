@@ -79,19 +79,35 @@ with st.sidebar:
             st.warning("Please enter a URL first.")
 
     st.markdown("---")
-    if st.button("🗑️ Clear All Data", help="Delete all ingested documents and reset the vector database"):
-        if st.checkbox("Confirm deletion?"):
-            try:
-                response = requests.post(f"{API_BASE_URL}/reset-db/")
-                if response.status_code == 200:
-                    st.success("Database reset successfully!")
-                    st.rerun()
-                else:
-                    st.error("Failed to reset database.")
-            except Exception as e:
-                st.error(f"Error: {e}")
+    st.subheader("🗑️ Reset System")
+    confirm_reset = st.checkbox("Confirm data deletion?")
+    if st.button("Clear All Data", help="Delete all ingested documents and reset the vector database", disabled=not confirm_reset):
+        try:
+            response = requests.post(f"{API_BASE_URL}/reset-db/")
+            if response.status_code == 200:
+                st.success("Database reset successfully!")
+                st.rerun()
+            else:
+                st.error("Failed to reset database.")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+    st.markdown("---")
+    st.subheader("📚 Ingested Sources")
+    try:
+        sources_resp = requests.get(f"{API_BASE_URL}/sources/")
+        if sources_resp.status_code == 200:
+            sources_data = sources_resp.json().get("sources", [])
+            if sources_data:
+                for s in sources_data:
+                    emoji = "📄" if s['type'] == 'document' else "🌐" if s['type'] == 'web' else "🎥" if s['type'] == 'video' else "🎵"
+                    st.caption(f"{emoji} {s['id']}")
+            else:
+                st.info("No sources ingested yet.")
         else:
-            st.warning("Please confirm deletion first.")
+            st.error("Failed to fetch sources.")
+    except Exception as e:
+        st.error(f"Could not connect to backend: {e}")
 
 # Main Q&A Area
 st.header("💬 Query & Analysis")
