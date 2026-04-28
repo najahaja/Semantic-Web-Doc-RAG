@@ -8,7 +8,7 @@ python-dotenv==1.0.1
 pdfplumber==0.10.4
 
 # Web Scraping
-requests==2.31.0
+requests>=2.31.0
 beautifulsoup4==4.12.3
 lxml==5.1.0
 trafilatura==1.6.0
@@ -29,3 +29,7 @@ numpy
 # Frontend UI & Analytics
 streamlit
 pandas
+
+# Media Processing
+openai-whisper
+moviepy
