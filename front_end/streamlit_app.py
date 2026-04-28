@@ -11,7 +11,7 @@ st.set_page_config(page_title="TaskBench RAG System", layout="wide")
 st.title("🚀 Advanced RAG System")
 st.markdown("---")
 
-# Sidebar for Ingestion
+# Sidebar for Ingestions
 with st.sidebar:
     st.header("📥 Data Ingestion")
     
