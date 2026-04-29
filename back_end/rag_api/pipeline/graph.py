@@ -84,16 +84,17 @@ class RAGGraph:
         
         INSTRUCTIONS:
         1. Answer the Question using ONLY the information in the Context below.
-        2. Provide a DIRECT and CONCISE answer. Do NOT include introductory definitions, background context, or additional information unless explicitly requested. If the question asks for a list, provide ONLY the list items.
-        3. If the Context genuinely does not contain any information relevant to the Question, reply EXACTLY: "I don't know based on the provided documents."
-        4. Do NOT use external knowledge or make up facts.
-        5. SOURCE TYPE RULE (CRITICAL): Each source in the Context is labeled with [Type: audio], [Type: video], or [Type: document]. You MUST read this label carefully and use that EXACT word when referring to the source. If the label says [Type: audio], you MUST say "audio" — NEVER say "video". If the label says [Type: video], you MUST say "video" — NEVER say "audio". Using the wrong type is a critical error.
-        6. CITATION RULES:
+        2. Provide a DIRECT and extremely CONCISE answer. If asked for a definition, provide ONLY the core definition itself without listing qualities, characteristics, or additional details unless explicitly asked.
+        3. Do NOT include introductory definitions (if the question isn't asking for one), background context, or additional information. If the question asks for a list, provide ONLY the list items.
+        4. If the Context genuinely does not contain any information relevant to the Question, reply EXACTLY: "I don't know based on the provided documents."
+        5. Do NOT use external knowledge or make up facts.
+        6. SOURCE TYPE RULE (CRITICAL): Each source in the Context is labeled with [Type: audio], [Type: video], or [Type: document]. You MUST read this label carefully and use that EXACT word when referring to the source. If the label says [Type: audio], you MUST say "audio" — NEVER say "video". If the label says [Type: video], you MUST say "video" — NEVER say "audio". Using the wrong type is a critical error.
+        7. CITATION RULES:
            - Do NOT mention the source filename (e.g., "According to sample1.pdf") in your answer.
            - For audio/video: You MUST inline-cite the EXACT timestamp(s) from the context (e.g., [12.50s - 15.00s]) WITHIN your answer sentence. This is MANDATORY — do NOT skip timestamps for audio/video answers.
            - After your complete answer, you MUST list the Source IDs used in the format: SourceIDs: [ID1, ID2].
-        7. SUMMARIZATION: If specifically asked for a summary of audio or video, provide a cohesive summary WITHOUT timestamps.
-        8. Answer the question asked based on ingested pdf or url or audio or video chunks content only, and if there is no relevant information in the context, reply EXACTLY: "I don't know based on the provided documents."
+        8. SUMMARIZATION: If specifically asked for a summary of audio or video, provide a cohesive summary WITHOUT timestamps.
+        9. Answer the question asked based on ingested pdf or url or audio or video chunks content only, and if there is no relevant information in the context, reply EXACTLY: "I don't know based on the provided documents."
         Context:
         {context}
         

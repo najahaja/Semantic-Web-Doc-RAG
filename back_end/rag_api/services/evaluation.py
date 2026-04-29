@@ -73,8 +73,7 @@ class EvaluationService:
             chunk_similarities = [self._cosine_similarity(a_vec, cv) for cv in context_vecs]
             raw_faithfulness = max(chunk_similarities) if chunk_similarities else 0.0
             faithfulness = self._normalize_score(raw_faithfulness, baseline=0.35)
-        else:
-            faithfulness = relevance * 1.1
+        # If no context is provided, faithfulness remains 0.0 as it cannot be verified.
 
         return {
             "relevance": round(float(relevance), 3),

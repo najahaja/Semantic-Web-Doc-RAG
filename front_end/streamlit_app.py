@@ -173,7 +173,9 @@ if st.button("Run Pipeline"):
                             "ground_truth": ground_truth
                         })
                         if eval_resp.status_code == 200:
-                            metrics.update(eval_resp.json())
+                            # Only update similarity to preserve the original relevance/faithfulness
+                            new_eval_data = eval_resp.json()
+                            metrics["similarity"] = new_eval_data.get("similarity", 0.0)
                     
                     # Render metrics as columns
                     col1, col2, col3 = st.columns(3)
